@@ -1,14 +1,19 @@
 {
-  "name": "",
-  "type": "module",
-  "version": "0.0.1",
+  "name": "argko",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "shared/db"
+  ],
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
+    "dev": "bun --filter frontend dev",
+    "build": "bun --filter frontend build",
+    "db:push": "cd shared/db && bun run db:push",
+    "db:seed": "cd shared/db && bun run db:seed",
+    "db:studio": "cd shared/db && bun run db:studio"
   },
-  "dependencies": {
-    "astro": "^5.17.1"
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.5"
   }
 }

@@ -1,46 +1,72 @@
-# Astro Starter Kit: Basics
+# Argko.gr - Greek Slang Database
 
-```sh
-npm create astro@latest -- --template basics
+## Quick Start
+
+### 1. Start PostgreSQL
+
+```bash
+docker compose up -d
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+### 2. Install Dependencies
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+```bash
+cd shared/db
+bun install
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+### 3. Set up Database URL
 
-## 🧞 Commands
+Create a `.env` file in `shared/db`:
 
-All commands are run from the root of the project, from a terminal:
+```bash
+DATABASE_URL=postgresql://argko:argko@localhost:5432/argko
+```
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+### 4. Generate and Push Schema
 
-## 👀 Want to learn more?
+```bash
+cd shared/db
+bun run db:push
+```
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+### 5. Seed the Database
+
+```bash
+bun run db:seed
+```
+
+### 6. View Database (optional)
+
+```bash
+bun run db:studio
+```
+
+## Project Structure
+
+```
+argko.gr/
+├── frontend/              # Astro site
+├── shared/
+│   └── db/               # Database schema & seeder
+│       ├── schema.ts     # Drizzle schema
+│       ├── seed.ts       # Seeding script
+│       └── slang_terms/  # JSON source files
+├── docker-compose.yml    # PostgreSQL container
+└── README.md
+```
+
+## Scripts
+
+- `db:generate` - Generate migrations from schema
+- `db:migrate` - Run migrations
+- `db:push` - Push schema directly (development)
+- `db:studio` - Open Drizzle Studio GUI
+- `db:seed` - Import all slang terms from JSON files
+
+## Environment Variables
+
+**DATABASE_URL**: PostgreSQL connection string
+
+- Local: `postgresql://argko:argko@localhost:5432/argko`
+- Production: Your hosted PostgreSQL URL
