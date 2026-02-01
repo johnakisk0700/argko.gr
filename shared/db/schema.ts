@@ -34,7 +34,7 @@ export const terms = pgTable(
     sourceUrl: text("source_url"), // Original slang.gr link
     submittedBy: varchar("submitted_by", { length: 255 }).references(
       () => users.id,
-    ),
+    ), // NULL = Archive/seeded terms
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -160,7 +160,7 @@ export const bookmarks = pgTable(
   "bookmarks",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: integer("user_id")
+    userId: varchar("user_id", { length: 255 })
       .notNull()
       .references(() => users.id),
     termId: integer("term_id")
@@ -170,6 +170,28 @@ export const bookmarks = pgTable(
   },
   (table) => [
     uniqueIndex("bookmarks_unique_idx").on(table.userId, table.termId),
+  ],
+);
+
+// Definition References (terms mentioned in definitions)
+export const definitionReferences = pgTable(
+  "definition_references",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    definitionId: integer("definition_id")
+      .notNull()
+      .references(() => definitions.id, { onDelete: "cascade" }),
+    referencedTermId: integer("referenced_term_id")
+      .notNull()
+      .references(() => terms.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("definition_references_unique_idx").on(
+      table.definitionId,
+      table.referencedTermId,
+    ),
+    index("definition_references_definition_id_idx").on(table.definitionId),
   ],
 );
 
@@ -199,6 +221,7 @@ export const definitionsRelations = relations(definitions, ({ one, many }) => ({
     references: [terms.id],
   }),
   votes: many(definitionVotes),
+  references: many(definitionReferences),
 }));
 
 export const commentsRelations = relations(comments, ({ one, many }) => ({
@@ -269,3 +292,17 @@ export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
     references: [terms.id],
   }),
 }));
+
+export const definitionReferencesRelations = relations(
+  definitionReferences,
+  ({ one }) => ({
+    definition: one(definitions, {
+      fields: [definitionReferences.definitionId],
+      references: [definitions.id],
+    }),
+    referencedTerm: one(terms, {
+      fields: [definitionReferences.referencedTermId],
+      references: [terms.id],
+    }),
+  }),
+);

@@ -1,0 +1,15 @@
+---
+import { Input } from "@/components/ui/input";
+import UserAvatar from "./UserAvatar";
+---
+
+<div class="flex justify-between items-center gap-8">
+  <h1 class="font-black text-2xl italic">Αργκο</h1>
+  <Input
+    className="max-w-md"
+    id="input-demo-api-key"
+    type="password"
+    placeholder="Αναζήτηση..."
+  />
+  <UserAvatar client:load />
+</div>

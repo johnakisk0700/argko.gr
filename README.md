@@ -36,9 +36,31 @@ bun run db:push
 bun run db:seed
 ```
 
-### 6. View Database (optional)
+### 6. Install Frontend Dependencies
 
 ```bash
+cd ../../frontend
+bun install
+```
+
+### 7. Set up Frontend Environment
+
+Create a `.env` file in `frontend/`:
+
+```bash
+DATABASE_URL=postgresql://argko:argko@localhost:5432/argko
+```
+
+### 8. Run the Frontend
+
+```bash
+bun run dev
+```
+
+### 9. View Database (optional)
+
+```bash
+cd ../shared/db
 bun run db:studio
 ```
 

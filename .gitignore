@@ -3,3 +3,4 @@ node_modules
 **/slang_terms/
 **/.astro/
 **/dist/
+**/drizzle/
