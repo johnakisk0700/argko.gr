@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "shared/db"
+    "shared/db",
+    "backend"
   ],
   "scripts": {
     "dev": "bun --filter frontend dev",
