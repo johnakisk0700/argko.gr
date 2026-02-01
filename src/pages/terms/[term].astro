@@ -1,0 +1,79 @@
+---
+import type { GetStaticPaths } from "astro";
+import Layout from "@/layouts/Layout.astro";
+import { db, terms, definitions } from "../../lib/server/db";
+import { eq } from "drizzle-orm";
+import Breadcrumbs from "@/components/Breadcrumbs.astro";
+import TermCard from "@/components/TermCard";
+
+export const prerender = true;
+export const getStaticPaths = (async () => {
+  // Fetch all terms from the database
+  const allTerms = await db.select().from(terms);
+
+  // Return paths with term data
+  return allTerms.map((term) => ({
+    params: { term: term.slug },
+    props: { termId: term.id },
+  }));
+}) satisfies GetStaticPaths;
+
+// Get the term data for this page
+const { termId } = Astro.props;
+const termData = await db.query.terms.findFirst({
+  where: eq(terms.id, termId),
+  with: {
+    definitions: {
+      with: {
+        references: {
+          with: {
+            referencedTerm: true,
+          },
+        },
+      },
+    },
+  },
+});
+
+if (!termData) {
+  return Astro.redirect("/404");
+}
+---
+
+<Layout
+  title={`${termData.term} - Argko.gr`}
+  description={termData.definitions[0]?.text || `Ορισμός για ${termData.term}`}
+>
+  <main class="mx-auto">
+    <article>
+      <Breadcrumbs
+        className="mb-5"
+        term={`${termData.term} (#${termData.slug})`}
+      />
+
+      <section class="">
+        {
+          termData.definitions.map((def: any) => {
+            const references = def.references
+              .filter((ref: any) => ref.referencedTerm.id !== termData.id)
+              .map((ref: any) => ({
+                term: ref.referencedTerm.term,
+                slug: ref.referencedTerm.slug,
+              }));
+
+            return (
+              <TermCard
+                term={termData.term}
+                title={def.text}
+                example={def.example || undefined}
+                submittedBy={termData.submittedBy || "Αρχείο"}
+                references={references}
+                client:load
+              />
+            );
+          })
+        }
+      </section>
+    </article>
+  </main>
+</Layout>

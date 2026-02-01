@@ -4,3 +4,7 @@ node_modules
 **/.astro/
 **/dist/
 **/drizzle/
+.env.local
+**/.env.local
+**/.env
+.env
