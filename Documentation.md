@@ -1,181 +1,149 @@
-# Argko.gr - Greek Slang Dictionary Platform
+# Argko.gr - Greek Slang Dictionary
 
-## 📖 Project Overview
+## Overview
 
-**Argko.gr** is a community-driven platform dedicated to documenting and celebrating modern Greek slang. The project transforms a collection of 25,000+ curated slang terms from [slang.gr](https://www.slang.gr) into an interactive, searchable, and community-enhanced digital dictionary.
+**Argko.gr** is a community-driven platform for documenting modern Greek slang. Built as a fullstack Astro application with PostgreSQL, it combines 25,000+ curated terms from [slang.gr](https://www.slang.gr) with community features including user authentication, commenting, voting, and bookmarking.
 
-### The Story
+## Tech Stack
 
-Language evolves constantly, especially in the digital age where slang terms emerge, spread, and fade at an unprecedented pace. Greek slang is no exception - from street culture to social media, new expressions continuously enrich the Greek language. This project aims to preserve this linguistic creativity while building a platform where the community can contribute, discuss, and vote on definitions.
-
-What started as a collection of JSON files has evolved into a full-stack application combining:
-
-- **Static site generation** for blazing-fast performance
-- **Relational database** for powerful querying and relationships
-- **Community features** enabling user contributions, comments, and voting
-- **Modern architecture** designed for scalability and maintainability
-
-### Why This Tech Stack?
-
-- **Astro** - Optimal for content-heavy sites, delivers minimal JavaScript, excellent SEO
-- **PostgreSQL + Drizzle** - Robust relational data with type-safe queries, perfect for complex relationships
-- **Bun** - Fast, modern JavaScript runtime and package manager
-- **Monorepo** - Shared code between frontend/backend, easier dependency management
-- **Future: NestJS** - When we add the backend API for CRUD operations and search
+- **Astro** (Server-Side Rendering) - Fullstack framework handling both frontend and API
+- **PostgreSQL** - Relational database for terms, users, and community data
+- **Drizzle ORM** - Type-safe database queries and schema management
+- **Bun** - JavaScript runtime and package manager
+- **Better Auth** - Authentication with Clerk integration
+- **TailwindCSS** - Styling with Radix UI components
+- **Docker** - Local PostgreSQL development environment
 
 ---
 
-## 🎯 Project Goals
-
-### Phase 1: Foundation (Current)
-
-- [x] Set up monorepo structure with Bun workspaces
-- [x] Design comprehensive database schema
-- [x] Create data migration/seeding scripts
-- [x] Establish Docker environment for local development
-- [ ] Build static Astro site with term pages
-- [ ] Implement search functionality
-- [ ] Deploy initial version
-
-### Phase 2: Community Features
-
-- [ ] Add NestJS backend API
-- [ ] Implement user authentication
-- [ ] Enable term submissions (moderation queue)
-- [ ] Add commenting system with nested replies
-- [ ] Implement voting on definitions and comments
-- [ ] User profiles and bookmarks
-
-### Phase 3: Enhancement
-
-- [ ] Advanced search with filters
-- [ ] Tag system for categorization
-- [ ] Analytics and popular terms
-- [ ] Share features and social integration
-- [ ] Mobile-responsive refinements
-
----
-
-## 📁 Folder Structure
+## Project Structure
 
 ```
 argko.gr/
-├── frontend/                      # Astro static site
-│   ├── src/
-│   │   ├── pages/                # Routes (index, [slug], etc.)
-│   │   ├── components/           # Astro/React components
-│   │   ├── layouts/              # Page layouts
-│   │   └── styles/               # Global styles
-│   ├── public/                   # Static assets
-│   ├── astro.config.mjs          # Astro configuration
-│   ├── package.json
-│   └── tsconfig.json
+├── src/
+│   ├── pages/                # Astro routes and API endpoints
+│   ├── components/           # UI components (Astro & React)
+│   ├── layouts/              # Page layouts
+│   ├── lib/                  # Utilities and helpers
+│   └── styles/               # Global styles
 │
-├── backend/                       # NestJS API (future)
-│   ├── src/
-│   │   ├── modules/              # Feature modules
-│   │   ├── auth/                 # Authentication
-│   │   └── common/               # Shared utilities
-│   ├── package.json
-│   └── tsconfig.json
+├── db/
+│   ├── schema.ts             # Drizzle database schema
+│   ├── auth-schema.ts        # Better Auth schema
+│   ├── seed.ts               # Database seeding script
+│   ├── drizzle.config.ts     # Drizzle Kit configuration
+│   └── slang_terms/          # Source JSON files (25k+ terms)
 │
-├── shared/                        # Shared packages
-│   └── db/                       # Database schema & utilities
-│       ├── schema.ts             # Drizzle schema definition
-│       ├── seed.ts               # Database seeder script
-│       ├── drizzle.config.ts     # Drizzle Kit configuration
-│       ├── slang_terms/          # Source JSON files (25k+)
-│       ├── package.json
-│       └── tsconfig.json
-│
-├── docker-compose.yml             # PostgreSQL container
-├── package.json                   # Root workspace config
-├── README.md                      # Quick start guide
-└── Documentation.md               # This file
+├── public/                   # Static assets
+├── docker-compose.yml        # PostgreSQL container
+├── astro.config.mjs          # Astro configuration
+├── package.json              # Dependencies and scripts
+└── tsconfig.json             # TypeScript configuration
 ```
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
-### Core Tables
+### Tables
 
 #### **users**
 
-User accounts for authentication and content attribution
+User accounts managed by Better Auth/Clerk
 
-- Authentication credentials (username, email, password)
-- Profile information (display name, avatar)
-- Role-based access (user, moderator, admin)
+- `id` - Clerk user ID (primary key)
+- `username` - Unique username
+- `role` - User role (user, moderator, admin)
+- `createdAt` - Account creation timestamp
 
 #### **terms**
 
-The slang terms/entries
+Slang terms/entries
 
-- Term name and URL-friendly slug
-- Source URL from original slang.gr
-- Status (published, pending, rejected)
-- Submission and approval tracking
-- View count analytics
-- Timestamps
+- `id` - Auto-incrementing primary key
+- `term` - Term name
+- `slug` - URL-friendly identifier
+- `sourceUrl` - Original slang.gr link
+- `submittedBy` - User ID (NULL for seeded/archive terms)
+- `createdAt` - Submission timestamp
 
 #### **definitions**
 
-Multiple definitions per term (one term can have several meanings)
+Multiple definitions per term
 
-- Definition text and usage example
-- Display order for sorting
-- Vote counts (upvotes/downvotes)
-- Source tracking for imported data
+- `id` - Auto-incrementing primary key
+- `termId` - Foreign key to terms
+- `text` - Definition text
+- `example` - Usage example (optional)
+- `upvotes` / `downvotes` - Vote counts
+- `createdAt` - Creation timestamp
 
 #### **comments**
 
 User discussions on terms
 
-- Nested comments (parent-child relationship)
-- Soft deletion (is_deleted flag)
-- Vote counts
-- Associated with user and term
+- `id` - Auto-incrementing primary key
+- `termId` - Foreign key to terms
+- `userId` - Foreign key to users
+- `parentId` - Self-reference for nested replies
+- `content` - Comment text
+- `upvotes` / `downvotes` - Vote counts
+- `isDeleted` - Soft deletion flag
+- `createdAt` - Creation timestamp
 
-### Engagement Tables
-
-#### **definition_votes** & **comment_votes**
+#### **definitionVotes** & **commentVotes**
 
 User voting on definitions and comments
 
-- One vote per user per item (unique constraint)
-- Vote type (up/down)
-- Enables democratic quality control
+- `definitionId` / `commentId` - Foreign key to voted item
+- `userId` - Foreign key to users
+- `voteType` - 'up' or 'down'
+- Unique constraint: one vote per user per item
 
 #### **tags**
 
 Categorization system
 
-- Tag name and slug
-- Optional description
+- `id` - Auto-incrementing primary key
+- `name` - Tag name
+- `slug` - URL-friendly identifier
 
-#### **term_tags** (junction table)
+#### **termTags**
 
-Many-to-many relationship between terms and tags
+Many-to-many junction table
 
-- Allows terms to belong to multiple categories
+- `termId` - Foreign key to terms
+- `tagId` - Foreign key to tags
+- Composite primary key
 
 #### **bookmarks**
 
-Users can save favorite terms
+User-saved favorite terms
 
-- One bookmark per user per term (unique constraint)
+- `userId` - Foreign key to users
+- `termId` - Foreign key to terms
+- Unique constraint: one bookmark per user per term
+
+#### **definitionReferences**
+
+Cross-references between definitions
+
+- `definitionId` - Foreign key to definitions
+- `referencedTermId` - Foreign key to terms
+- Tracks terms mentioned in definitions
 
 ### Relationships
 
-- **One-to-Many**: User → Terms (submitted), User → Comments
-- **Many-to-Many**: Terms ↔ Tags (via term_tags junction)
-- **Self-Referencing**: Comments → Comments (nested replies)
-- **Foreign Keys**: All relationships with CASCADE on delete for data integrity
+- Terms → Definitions (one-to-many)
+- Terms → Comments (one-to-many)
+- Comments → Comments (self-referencing for replies)
+- Users → Terms, Comments, Bookmarks, Votes (one-to-many)
+- Terms ↔ Tags (many-to-many via termTags)
+- All foreign keys use CASCADE on delete
 
 ---
 
-## 🚀 Getting Started
+## Development Setup
 
 ### Prerequisites
 
@@ -183,13 +151,11 @@ Users can save favorite terms
 - [Docker](https://www.docker.com/) & Docker Compose
 - Git
 
-### Initial Setup
+### Setup Steps
 
-1. **Clone and install dependencies**
+1. **Install dependencies**
 
    ```bash
-   git clone <repository-url>
-   cd argko.gr
    bun install
    ```
 
@@ -202,67 +168,54 @@ Users can save favorite terms
 3. **Configure environment**
 
    ```bash
-   cd shared/db
-   cp .env.example .env
-   # Edit .env with your DATABASE_URL if needed
+   # Create .env file with DATABASE_URL
+   # Example: postgresql://user:password@localhost:5432/argko
    ```
 
 4. **Initialize database**
 
    ```bash
-   # Push schema to database
-   bun run db:push
-
-   # Seed with slang terms (this will take a few minutes)
-   bun run db:seed
+   bun run db:push     # Push schema to database
+   bun run db:seed     # Import slang terms from JSON files
    ```
 
 5. **Start development server**
    ```bash
-   cd ../../frontend
-   bun dev
+   bun dev             # Astro dev server at http://localhost:4321
    ```
 
 ### Available Scripts
 
-**Root level:**
-
-- `bun dev` - Start Astro dev server
-- `bun build` - Build frontend for production
+- `bun dev` - Start Astro development server
+- `bun build` - Build for production
+- `bun preview` - Preview production build
 - `bun run db:push` - Push schema changes to database
-- `bun run db:seed` - Import JSON files to database
+- `bun run db:seed` - Seed database with JSON terms
 - `bun run db:studio` - Open Drizzle Studio (database GUI)
-
-**In shared/db:**
-
 - `bun run db:generate` - Generate migration files
 - `bun run db:migrate` - Run migrations
-- `bun run seed.ts` - Seed database directly
 
 ---
 
-## 🔧 Development Workflow
+## Development Workflow
 
-### Working with the Database
+### Database Changes
 
-1. **Modify schema** - Edit `shared/db/schema.ts`
-2. **Push changes** - `bun run db:push` (development)
-3. **Or generate migration** - `bun run db:generate` (production)
-4. **Inspect with Drizzle Studio** - `bun run db:studio`
+1. Modify schema in `db/schema.ts`
+2. Run `bun run db:push` for development
+3. Or generate migrations with `bun run db:generate` for production
+4. Inspect data with `bun run db:studio`
 
-### Adding New Features
+### Querying Data
 
-1. Create/modify Astro components in `frontend/src/`
-2. Update schema if needed (shared/db/schema.ts)
-3. Use Drizzle relations for data fetching
-4. Test locally with seed data
-
-### Data Model Examples
-
-**Querying with Drizzle:**
+Drizzle ORM provides type-safe queries:
 
 ```typescript
-// Get term with all definitions and comments
+import { db } from "@/db";
+import { terms, definitions, comments } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+// Get term with definitions and comments
 const term = await db.query.terms.findFirst({
   where: eq(terms.slug, "example-slug"),
   with: {
@@ -277,99 +230,102 @@ const term = await db.query.terms.findFirst({
 });
 ```
 
----
+### Astro API Routes
 
-## 🎨 Design Philosophy
+API endpoints in `src/pages/api/`:
 
-### Content-First
-
-The platform prioritizes content accessibility and readability. Fast load times and SEO are critical.
-
-### Community-Driven
-
-Users can contribute, discuss, and collectively improve definitions through voting and comments.
-
-### Scalable Architecture
-
-The monorepo structure and clear separation between frontend/backend/shared code enables:
-
-- Easy scaling as the project grows
-- Code reuse between frontend and backend
-- Independent deployment of services
-
-### Type Safety
-
-TypeScript + Drizzle ORM provides end-to-end type safety from database to UI.
+```typescript
+// src/pages/api/terms/[slug].ts
+export async function GET({ params }) {
+  const term = await db.query.terms.findFirst({
+    where: eq(terms.slug, params.slug),
+  });
+  return new Response(JSON.stringify(term));
+}
+```
 
 ---
 
-## 🚢 Deployment Strategy
+## Architecture
 
-### Current (Phase 1)
+### Astro Fullstack
 
-- **Frontend**: Static site deployed to Vercel/Netlify/Cloudflare Pages
-- **Database**: Managed PostgreSQL (Neon, Supabase, Railway)
-- **Build**: Database seeded once, frontend queries at build time
+Astro handles both frontend rendering and backend API in a single application:
 
-### Future (Phase 2+)
+- **SSR Mode**: Server-side rendering for dynamic content
+- **API Routes**: RESTful endpoints in `src/pages/api/`
+- **Components**: Mix of Astro components and React islands
+- **Database**: Direct PostgreSQL access via Drizzle ORM
 
-- **Backend API**: NestJS deployed to Docker container
-- **Database**: Production PostgreSQL with automated backups
-- **Frontend**: Connects to API for dynamic features
-- **Consideration**: Docker Compose for all services or Kubernetes for scale
+### Authentication
+
+Better Auth with Clerk integration:
+
+- User sessions managed by Clerk
+- User data stored in local PostgreSQL
+- Role-based access control (user, moderator, admin)
+
+### Data Flow
+
+```
+Client Request
+    ↓
+Astro Route/API
+    ↓
+Drizzle ORM Query
+    ↓
+PostgreSQL Database
+    ↓
+Response (HTML or JSON)
+```
 
 ---
 
-## 📚 Technical Decisions
+## Deployment
 
-### Why Static Site (Astro)?
+### Database
 
-- 25k+ terms = lots of pages, SSG is perfect
-- Excellent SEO out of the box
-- Can add interactive islands when needed
-- Blazing fast performance
+- Managed PostgreSQL (Neon, Supabase, or Railway)
+- Run migrations: `bun run db:migrate`
+- One-time seed: `bun run db:seed`
 
-### Why PostgreSQL?
+### Application
 
-- Proven reliability for relational data
-- Excellent full-text search (Greek language support)
-- Handles millions of rows efficiently
-- JSON support for flexible data when needed
+- Deploy to Vercel, Netlify, or Cloudflare Pages
+- Set `output: "server"` in `astro.config.mjs`
+- Environment variables: `DATABASE_URL`, auth credentials
 
-### Why Drizzle ORM?
+---
 
-- Type-safe queries with great DX
-- Lightweight, no runtime overhead
-- SQL-like syntax, close to the metal
+## Key Technologies
+
+**Why Astro?**
+
+- Content-focused with excellent performance
+- SSR for dynamic features (auth, comments, votes)
+- Minimal client-side JavaScript
+- Great SEO out of the box
+
+**Why PostgreSQL?**
+
+- Robust relational data model
+- Full-text search capabilities
+- JSON support for flexible data
+- Proven scalability
+
+**Why Drizzle ORM?**
+
+- Type-safe queries with TypeScript
+- Lightweight with no runtime overhead
+- SQL-like syntax
 - Excellent migration tooling
 
-### Why Monorepo?
+**Why Bun?**
 
-- Share database schema between frontend/backend
-- Single source of truth for types
-- Easier dependency management
-- Coordinated versioning
-
----
-
-## 🤝 Contributing
-
-(To be defined based on project visibility and collaboration needs)
+- Fast package installation
+- TypeScript support out of the box
+- Drop-in Node.js replacement
 
 ---
 
-## 📄 License
-
-(To be determined)
-
----
-
-## 🙏 Acknowledgments
-
-- Original data sourced from [slang.gr](https://www.slang.gr)
-- Built with [Astro](https://astro.build), [Drizzle ORM](https://orm.drizzle.team), and [Bun](https://bun.sh)
-
----
-
-**Last Updated:** February 2026  
-**Status:** In Active Development (Phase 1)
+**Last Updated:** February 2026
