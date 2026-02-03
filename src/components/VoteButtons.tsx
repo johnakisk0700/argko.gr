@@ -58,8 +58,8 @@ export default function VoteButtons({
 
   const handleUpvote = () => {
     if (!session) {
-       alert("Πρέπει να είσαι συνδεδεμένος για να ψηφίσεις!");
-       return;
+      alert("Πρέπει να είσαι συνδεδεμένος για να ψηφίσεις!");
+      return;
     }
 
     if (userVote === "up") {
@@ -82,8 +82,8 @@ export default function VoteButtons({
 
   const handleDownvote = () => {
     if (!session) {
-       alert("Πρέπει να είσαι συνδεδεμένος για να ψηφίσεις!");
-       return;
+      alert("Πρέπει να είσαι συνδεδεμένος για να ψηφίσεις!");
+      return;
     }
 
     if (userVote === "down") {

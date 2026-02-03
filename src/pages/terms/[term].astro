@@ -1,43 +1,55 @@
 ---
 import type { GetStaticPaths } from "astro";
 import Layout from "@/layouts/Layout.astro";
-import { db, terms, definitions } from "../../lib/server/db";
-import { eq } from "drizzle-orm";
+import { db, terms, definitions, definitionVotes } from "../../lib/server/db";
+import { eq, and } from "drizzle-orm";
 import Breadcrumbs from "@/components/Breadcrumbs.astro";
 import TermCard from "@/components/TermCard";
+import { auth } from "@/lib/server/auth";
 
-export const prerender = true;
-export const getStaticPaths = (async () => {
-  // Fetch all terms from the database
-  const allTerms = await db.select().from(terms);
+export const prerender = false;
 
-  // Return paths with term data
-  return allTerms.map((term) => ({
-    params: { term: term.slug },
-    props: { termId: term.id },
-  }));
-}) satisfies GetStaticPaths;
+// Get the term slug from URL params
+const { term: termSlug } = Astro.params;
 
-// Get the term data for this page
-const { termId } = Astro.props;
-const termData = await db.query.terms.findFirst({
-  where: eq(terms.id, termId),
-  with: {
-    definitions: {
-      with: {
-        references: {
-          with: {
-            referencedTerm: true,
+if (!termSlug) {
+  return Astro.redirect("/404");
+}
+
+// Get the current user session
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+const userId = session?.user?.id;
+
+// Fire both queries concurrently 🚀
+const [termData, userVotes] = await Promise.all([
+  db.query.terms.findFirst({
+    where: eq(terms.slug, termSlug),
+    with: {
+      definitions: {
+        with: {
+          references: {
+            with: {
+              referencedTerm: true,
+            },
           },
         },
       },
     },
-  },
-});
+  }),
+  userId
+    ? db
+        .select()
+        .from(definitionVotes)
+        .where(eq(definitionVotes.userId, userId))
+    : Promise.resolve([]),
+]);
 
 if (!termData) {
   return Astro.redirect("/404");
 }
+
+// Create a map of definitionId -> voteType for quick lookup
+const voteMap = new Map(userVotes.map((v) => [v.definitionId, v.voteType]));
 ---
 
 <Layout
@@ -53,25 +65,32 @@ if (!termData) {
 
       <section class="">
         {
-          termData.definitions.map((def: any) => {
-            const references = def.references
-              .filter((ref: any) => ref.referencedTerm.id !== termData.id)
-              .map((ref: any) => ({
-                term: ref.referencedTerm.term,
-                slug: ref.referencedTerm.slug,
-              }));
+          termData.definitions
+            .sort((a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes))
+            .map((def: any) => {
+              const references = def.references
+                .filter((ref: any) => ref.referencedTerm.id !== termData.id)
+                .map((ref: any) => ({
+                  term: ref.referencedTerm.term,
+                  slug: ref.referencedTerm.slug,
+                }));
 
-            return (
-              <TermCard
-                term={termData.term}
-                title={def.text}
-                example={def.example || undefined}
-                submittedBy={termData.submittedBy || "Αρχείο"}
-                references={references}
-                client:load
-              />
-            );
-          })
+              const userVote = voteMap.get(def.id) || null;
+
+              return (
+                <TermCard
+                  term={termData.term}
+                  definitionId={def.id}
+                  initialVotes={def.upvotes - def.downvotes}
+                  initialUserVote={userVote}
+                  title={def.text}
+                  example={def.example || undefined}
+                  submittedBy={termData.submittedBy || "Αρχείο"}
+                  references={references}
+                  client:load
+                />
+              );
+            })
         }
       </section>
     </article>

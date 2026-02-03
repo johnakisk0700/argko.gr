@@ -9,20 +9,13 @@ import {
   index,
   uniqueIndex,
   type AnyPgColumn,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { user } from "./auth-schema";
 
-// Users (Clerk handles auth - this is just for app data)
-export const users = pgTable(
-  "users",
-  {
-    id: varchar({ length: 255 }).primaryKey(), // Clerk user ID
-    username: varchar({ length: 50 }).notNull(),
-    role: varchar({ length: 20 }).default("user"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [uniqueIndex("users_username_idx").on(table.username)],
-);
+// Vote type enum
+export const voteTypeEnum = pgEnum("vote_type", ["up", "down"]);
 
 // Terms
 export const terms = pgTable(
@@ -32,9 +25,7 @@ export const terms = pgTable(
     term: varchar({ length: 255 }).notNull(),
     slug: varchar({ length: 255 }).notNull(),
     sourceUrl: text("source_url"), // Original slang.gr link
-    submittedBy: varchar("submitted_by", { length: 255 }).references(
-      () => users.id,
-    ), // NULL = Archive/seeded terms
+    submittedBy: text("submitted_by").references(() => user.id), // NULL = Archive/seeded terms
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -68,9 +59,9 @@ export const comments = pgTable(
     termId: integer("term_id")
       .notNull()
       .references(() => terms.id, { onDelete: "cascade" }),
-    userId: varchar("user_id", { length: 255 })
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => user.id),
     parentId: integer("parent_id").references((): AnyPgColumn => comments.id),
     content: text().notNull(),
     upvotes: integer().default(0).notNull(),
@@ -93,10 +84,10 @@ export const definitionVotes = pgTable(
     definitionId: integer("definition_id")
       .notNull()
       .references(() => definitions.id, { onDelete: "cascade" }),
-    userId: varchar("user_id", { length: 255 })
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id),
-    voteType: varchar("vote_type", { length: 10 }).notNull(), // 'up' or 'down'
+      .references(() => user.id),
+    voteType: voteTypeEnum("vote_type").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -115,10 +106,10 @@ export const commentVotes = pgTable(
     commentId: integer("comment_id")
       .notNull()
       .references(() => comments.id, { onDelete: "cascade" }),
-    userId: varchar("user_id", { length: 255 })
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id),
-    voteType: varchar("vote_type", { length: 10 }).notNull(), // 'up' or 'down'
+      .references(() => user.id),
+    voteType: voteTypeEnum("vote_type").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -160,9 +151,9 @@ export const bookmarks = pgTable(
   "bookmarks",
   {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    userId: varchar("user_id", { length: 255 })
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => user.id),
     termId: integer("term_id")
       .notNull()
       .references(() => terms.id, { onDelete: "cascade" }),
@@ -196,7 +187,7 @@ export const definitionReferences = pgTable(
 );
 
 // Relations for Drizzle queries
-export const usersRelations = relations(users, ({ many }) => ({
+export const userRelations = relations(user, ({ many }) => ({
   submittedTerms: many(terms),
   comments: many(comments),
   bookmarks: many(bookmarks),
@@ -205,9 +196,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const termsRelations = relations(terms, ({ one, many }) => ({
-  submitter: one(users, {
+  submitter: one(user, {
     fields: [terms.submittedBy],
-    references: [users.id],
+    references: [user.id],
   }),
   definitions: many(definitions),
   comments: many(comments),
@@ -229,9 +220,9 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     fields: [comments.termId],
     references: [terms.id],
   }),
-  user: one(users, {
+  user: one(user, {
     fields: [comments.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   parent: one(comments, {
     fields: [comments.parentId],
@@ -249,9 +240,9 @@ export const definitionVotesRelations = relations(
       fields: [definitionVotes.definitionId],
       references: [definitions.id],
     }),
-    user: one(users, {
+    user: one(user, {
       fields: [definitionVotes.userId],
-      references: [users.id],
+      references: [user.id],
     }),
   }),
 );
@@ -261,9 +252,9 @@ export const commentVotesRelations = relations(commentVotes, ({ one }) => ({
     fields: [commentVotes.commentId],
     references: [comments.id],
   }),
-  user: one(users, {
+  user: one(user, {
     fields: [commentVotes.userId],
-    references: [users.id],
+    references: [user.id],
   }),
 }));
 
@@ -283,9 +274,9 @@ export const termTagsRelations = relations(termTags, ({ one }) => ({
 }));
 
 export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
-  user: one(users, {
+  user: one(user, {
     fields: [bookmarks.userId],
-    references: [users.id],
+    references: [user.id],
   }),
   term: one(terms, {
     fields: [bookmarks.termId],

@@ -11,6 +11,7 @@ interface ReferencedTerm {
 
 interface TermCardProps {
   term: string;
+  definitionId: number;
   title: string;
   example?: string;
   submittedBy?: string;
@@ -52,6 +53,7 @@ function renderTextWithLineBreaks(text: string): React.ReactNode {
 
 export default function TermCard({
   term,
+  definitionId,
   title,
   example = "<παράδειγμα λείπει>",
   submittedBy,
@@ -111,6 +113,7 @@ export default function TermCard({
 
       <CardFooter className="flex justify-between items-center border-t">
         <VoteButtons
+          definitionId={definitionId}
           initialVotes={initialVotes}
           initialUserVote={initialUserVote}
         />
